@@ -7,7 +7,11 @@ type Uploadthing struct {
 	secret string
 }
 
-type UploadthingConfig struct{}
+type UploadthingApiConfig struct {
+	InfraURL string
+	ApiKey   string
+	TempDir  string
+}
 
 func New() *Uploadthing {
 	appIdEnvKey := "UPLOADTHING_APP_ID"
