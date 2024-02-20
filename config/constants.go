@@ -23,7 +23,7 @@ const (
 	Attachment ContentDisposition = "attachment"
 )
 
-type FileSize float64
+type FileSize int
 
 const (
 	Bytes     FileSize = 1

@@ -1,6 +1,9 @@
 package api
 
 import (
+	"bufio"
+	"io"
+	"log"
 	"os"
 	"sync"
 
@@ -48,31 +51,37 @@ func (ut *UploadthingApi) UploadFiles(paths []string) ([]UploadStatus, error) {
 			wg2 := &sync.WaitGroup{}
 			etagChan := make(chan EtagReturn)
 
+			f, err := os.Open(paths[i])
+
+			if err != nil {
+				panic("file not found")
+			}
+
+			defer f.Close()
+
+			reader := bufio.NewReader(f)
+			chunkList := [][]byte{}
+			buf := make([]byte, int(uploadFile.ChunkSize))
+
+			for {
+				n, err := reader.Read(buf)
+
+				if err != nil {
+					if err != io.EOF {
+						log.Fatal(err)
+					}
+					break
+				}
+				chunkList = append(chunkList, buf[0:n])
+			}
+
 			for j, presignedUrl := range uploadFile.PresignedUrls {
-				offset := int(uploadFile.ChunkSize) * j
-				// TODO: maybe float64 was a mistake we can use int
-				// end := math.Min(float64(offset+int(uploadFile.ChunkSize)), float64(filesMeta[i].Size))
-
-				f, err := os.Open(paths[i])
-
-				if err != nil {
-					panic("file not found")
-				}
-
-				_, err = f.Seek(int64(offset), 0)
-
-				if err != nil {
-					panic("failed reading file")
-				}
-
-				b := make([]byte, int(uploadFile.ChunkSize))
-				f.Read(b)
 
 				wg2.Add(1)
 				go ut.uploadPart(wg2, etagChan, &UploadPartParams{
 					Url:   presignedUrl,
 					Key:   uploadFile.Key,
-					Chunk: b,
+					Chunk: chunkList[j],
 					//TODO:
 					ContentType: string(uploadFile.FileType),
 					//TODO:
@@ -104,20 +113,20 @@ func (ut *UploadthingApi) UploadFiles(paths []string) ([]UploadStatus, error) {
 				ut.completeMultipart(uploadFile.Key, uploadFile.UploadId, etags)
 				success := ut.confirmUpload(uploadFile.Key, 20, 0)
 
-				var maybeError *UploadthingError = nil
+				var maybeErrors = []UploadthingError{}
 
 				if !success {
-					maybeError = &UploadthingError{
+					maybeErrors = append(maybeErrors, UploadthingError{
 						//TODO:
 						Code:    "",
 						Message: "Failed to verify upload",
-					}
+					})
 				}
 
 				uploadStatusChan <- UploadStatus{
 					UploadthingFile: uploadFile,
 					Success:         success,
-					Error:           []UploadthingError{*maybeError},
+					Error:           maybeErrors,
 				}
 				return
 			}

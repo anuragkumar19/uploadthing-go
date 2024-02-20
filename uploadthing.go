@@ -1,10 +1,15 @@
 package uploadthing
 
-import "os"
+import (
+	"os"
+
+	"github.com/anuragkumar19/uploadthing-go/api"
+)
 
 type Uploadthing struct {
 	appID  string
 	secret string
+	Api    *api.UploadthingApi
 }
 
 type UploadthingApiConfig struct {
@@ -28,6 +33,8 @@ func New() *Uploadthing {
 		panic("uploadthing: failed to load secret")
 	}
 
+	api.New()
+
 	ut := Uploadthing{
 		appID:  appId,
 		secret: secret,
@@ -36,6 +43,6 @@ func New() *Uploadthing {
 	return &ut
 }
 
-func NewWithConfig(config *UploadthingConfig) *Uploadthing {
+// func NewWithConfig(config *UploadthingConfig) *Uploadthing {
 
-}
+// }

@@ -16,7 +16,11 @@ import (
 )
 
 func (ut *UploadthingApi) getPresignedUrls(files []UploadFileMeta) ([]UploadthingFile, *UploadthingError) {
-	body, err := json.Marshal(files)
+	body, err := json.Marshal(map[string]interface{}{
+		"files":              files,
+		"contentDisposition": config.Inline,
+		"metadata":           "{}",
+	})
 
 	if err != nil {
 		panic(fmt.Errorf("uploadthing: failed to marshal %v to json: %v", files, err.Error()))
@@ -88,7 +92,7 @@ func (ut *UploadthingApi) uploadPart(wg *sync.WaitGroup, ch chan EtagReturn, par
 	defer wg.Done()
 
 	client := http.Client{}
-	req, err := http.NewRequest("PUT", ut.getRequestUrl(params.Url), bytes.NewBuffer(params.Chunk))
+	req, err := http.NewRequest("PUT", params.Url, bytes.NewBuffer(params.Chunk))
 
 	if err != nil {
 		panic(fmt.Errorf("uploadthing: failed to create request: %v", err.Error()))
